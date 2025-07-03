@@ -1,81 +1,123 @@
 #include <stdio.h>
 #include "pico/stdlib.h"
+#include "pico/multicore.h"
+#include "init.h"
+#include "display.h"
 
-void init_demultiplexer();
-void init_leds();
-void set_leds();
-void loop_demultiplexer();
-void init_buttons();
+#define H 0
+#define L 1
+void moving(uint direction);
+void core1_entry();
+volatile bool tab[16][10] = {0};
+unsigned short pos[4][2] = {{0, 0},{0, 1},{1, 0},{1, 1}}; 
 
 int main()
 {
-    stdio_init_all();
-    init_demultiplexer();
-    init_leds();
-    init_buttons();
+    init_ledris();
 
-    
-    int tab[16][10] = {0};
-    for(int i = 0; i < 16; i++){
+     for(int i = 0; i < 16; i++){ //setting up all the leds low
         for(int j = 0; j < 10; j++){
-            tab[i][j] = (i + j) % 2;
+            tab[i][j] = L;
         }
     }
+    
+    multicore_launch_core1(core1_entry);
+
+    for(int i = 0; i < 4; i++){
+        tab[pos[i][0]][pos[i][1]] = H;
+    }
+
+    while(true){
+        sleep_ms(500);
+        moving(3);
+    }
+   
+}
 
 
+void core1_entry(){
 
     while (true) {
-        loop_demultiplexer(tab);
+        loop_display_table(tab);
+    }
+
+}
+
+void button_handler(uint gpio, uint32_t event_mask){
+    switch (gpio)
+    {
+    case LEFT:
+        moving(1);
+    
+    case RIGHT:
+        moving(2);
+    
+    case ROTATE:
+        break;
     }
 }
 
-
-void init_demultiplexer()
-{
-    for(uint i= 16; i < 21; i++){
-        gpio_init(i);
-        gpio_set_dir(i, true);
-        gpio_put(i, false);
-    }
-    gpio_put(20, true);
-}
-
-void init_leds()
-{
-    for(uint i=0; i < 10; i++){
-        gpio_init(i);
-        gpio_set_dir(i, true);
-        gpio_put(i , true);
-    }
-}
-
-void init_buttons(){
-    for(int i = 10; i < 14; i++){
-        gpio_init(i);
-        gpio_set_dir(i, 0);
-        gpio_pull_up(i);
-    }//todo irq interrupitons :""
-}
-
-
-void set_leds(int* tab){
-    uint32_t mask = (1 << 0) | (1 << 1) | (1 << 2) | (1 << 3) | (1 << 4) | (1 << 5) | (1 << 6) | (1 << 7) | (1 << 8) | (1 << 9); //gpio 0 to 9
-
-    gpio_put_masked(mask, 
-        (tab[0] << 0) | (tab[1] << 1) | (tab[2] << 2) | (tab[3] << 3) | (tab[4] << 4) | (tab[5] << 5) | (tab[6] << 6) | (tab[7] << 7) | (tab[8] << 8) | (tab[9] << 9));
-         // changing gpio value
-
-}
-
-void loop_demultiplexer(int tab[16][10]){
-        uint32_t mask = (1 << 16) | (1 << 17) | (1 << 18) | (1 << 19); //pins 16, 17, 18, 19 are otuput for demultiplexer
-        uint32_t out = (1 << 15);
-
-        for(int i =0; i < 16; i ++){
-            gpio_put_masked(mask, out);
-            set_leds(tab[i]);
-            out += (1 << 16);
-            sleep_ms(1);
+void moving(uint direction){
+    switch (direction)
+    {
+    case 1:
+        for(int i = 0; i < 4; i++){ // checking if not to far left
+            if (pos[i][1] == 0){
+                return;
+            }
         }
+        for(int i = 0; i < 4; i++){ // if not on left wall moving everything left
+            tab[pos[i][0]][pos[i][1]] = L;
+        }
+        for(int i = 0; i < 4; i++){
+            pos[i][1] -= 1;
+            tab[pos[i][0]][pos[i][1]] = H;
+            }
+        break;
+    
+    case 2:
+        for(int i = 0; i < 4; i++){ // checking if not to far right
+            if (pos[i][1] == 9){
+                return;
+            }
+        }
+        for(int i = 0; i < 4; i++){ // if not on right wall moving everything right
+            tab[pos[i][0]][pos[i][1]] = L;
+            }
+         for(int i = 0; i < 4; i++){ // if not on right wall moving everything right
+            pos[i][1] += 1;
+            tab[pos[i][0]][pos[i][1]] = H;
+            } 
+            
+        break;
+    case 3:
+        bool floor = false;
+        for(int i = 2; i < 4; i++){ // checking if not floor
+            if (pos[i][1] == 15 || tab[pos[i][0]+1][pos[i][1]] == H){
+                floor = true;
+            }
+        }
+        if(floor == true){
+            pos[0][0] = 0;
+            pos[1][0] = 0;
+            pos[2][0] = 1;
+            pos[3][0] = 1;
+            for(int i = 0; i < 4; i++){
+                tab[pos[i][0]][pos[i][1]] = H;
+            }
+            return;
+        }
+        for(int i = 0; i < 4; i++){ 
+            tab[pos[i][0]][pos[i][1]] = L;
+        }
+        for(int i = 0; i < 4; i++){
+            pos[i][0] += 1;
+            tab[pos[i][0]][pos[i][1]] = H;
+            }
+        break;
+    default:
+        break;
+    }
 
-}
+    }
+    

@@ -35,7 +35,7 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(Ledris Ledris.c )
+add_executable(Ledris Ledris.c init.c display.c)
 
 pico_set_program_name(Ledris "Ledris")
 pico_set_program_version(Ledris "0.1")
@@ -46,7 +46,7 @@ pico_enable_stdio_usb(Ledris 1)
 
 # Add the standard library to the build
 target_link_libraries(Ledris
-        pico_stdlib)
+        pico_stdlib pico_multicore)
 
 # Add the standard include files to the build
 target_include_directories(Ledris PRIVATE
