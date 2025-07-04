@@ -14,7 +14,7 @@ void loop_display_table(bool tab[16][10]){
         uint32_t mask = (1 << 16) | (1 << 17) | (1 << 18) | (1 << 19); //pins 16, 17, 18, 19 are otuput for demultiplexer
         uint32_t out = (1 << 15);
 
-        for(int i =0; i < 16; i ++){
+        for(int i =2; i < 18; i ++){
             gpio_put_masked(mask, out);
             set_leds(tab[i]);
             out += (1 << 16);
