@@ -12,6 +12,7 @@ void moving(uint direction);
 void random_block();
 void clear_block();
 void core1_entry();
+void rotating();
 absolute_time_t last_button_time;
 volatile bool tab[18][10] = {0};
 unsigned short pos[4][2] = {{0, 0},{0, 1},{1, 0},{1, 1}}; 
@@ -61,6 +62,7 @@ void button_handler(uint gpio, uint32_t event_mask){
         moving(RIGHT);
         break;
     case ROTATE:
+        rotating();
         break;
     }
     last_button_time = get_absolute_time();
@@ -124,23 +126,24 @@ void moving(uint direction){ //change it to move_left/ rigt itd not switch case 
         break;
     case 3:
         bool floor = false;
-        for(int i = 2; i < 4; i++){// checking if not floor
+        for(int i = 0; i < 4; i++){// checking if not floor
             if (pos[i][0] == 17){
                 floor = true;
                 break;
             }
-            if(tab[pos[i][0] + 1][pos[i][1]] == H){
+            if (tab[pos[i][0] + 1][pos[i][1]] == H){
                 bool it_was_body = false;
                 for(int j = 0; j < 4; j++){
-                    if(pos[i][0] + 1 == pos[j][0] && pos[i][1] == pos[j][1]){
-                       it_was_body = true;
-                        break;
+                    if((pos[i][0] + 1) == pos[j][0] && pos[i][1] == pos[j][1]){
+                        it_was_body = true;
                     }
                 }
-                if(it_was_body == false){
-                     floor = true;
+                if (it_was_body == false){
+                    floor = true;
+                    break;
                 }
             }
+            
         }
         if(floor == true){
             random_block();
@@ -171,7 +174,7 @@ void random_block(){
                                    {{1, 0}, {1, 1}, {1, 2}, {1, 3}},//long
                                    {{0, 0}, {1, 0}, {2, 0}, {2, 1}},//L
                                    {{0, 1}, {1, 1}, {2, 0}, {2, 1}},//J
-                                   {{0, 1}, {0, 2}, {1, 0}, {1, 1}},//S
+                                   {{0, 2}, {0, 1}, {1, 0}, {1, 1}},//S
                                    {{0, 0}, {0, 1}, {1, 1}, {1, 2}},//Z
                                    {{0, 1}, {1, 0}, {1, 1}, {1, 2}},//T
                                   };
@@ -184,4 +187,14 @@ void random_block(){
         }
     }
     
+}
+
+void rotating(){
+    clear_block();
+    for(int i = 0; i < 4; i++){
+        unsigned short temp_pos[2] = {pos[i][0] - pos[1][0], pos[i][1] - pos[1][1]}; //making point relevant to center of block
+        pos[i][0] = temp_pos[1] + pos[1][0];
+        pos[i][1] = -1 * temp_pos[0] + pos[1][1];
+        tab[pos[i][0]][pos[i][1]] = H;
+    }
 }
