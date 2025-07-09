@@ -13,6 +13,7 @@ void random_block();
 void clear_block();
 void core1_entry();
 void rotating();
+int is_body(unsigned short place[2]);
 absolute_time_t last_button_time;
 volatile bool tab[18][10] = {0};
 unsigned short pos[4][2] = {{0, 0},{0, 1},{1, 0},{1, 1}}; 
@@ -78,14 +79,8 @@ void moving(uint direction){ //change it to move_left/ rigt itd not switch case 
                 return;
             }
             if(tab[pos[i][0]][pos[i][1] - 1] == H){
-                bool it_was_body = false;
-                for(int j = 0; j < 4; j++){
-                    if(pos[i][0] == pos[j][0] && pos[i][1] - 1 == pos[j][1]){
-                        it_was_body = true;
-                        break;
-                    }
-                }
-                if(it_was_body == false){
+                unsigned short place[2] = {pos[i][0] , pos[i][1] - 1};
+                if (is_body(place) == false){
                     return;
                 }
             }
@@ -105,14 +100,8 @@ void moving(uint direction){ //change it to move_left/ rigt itd not switch case 
                 return;
             }
             if(tab[pos[i][0]][pos[i][1] + 1] == H){
-                bool it_was_body = false;
-                for(int j = 0; j < 4; j++){
-                    if(pos[i][0] == pos[j][0] && pos[i][1] + 1 == pos[j][1]){
-                        it_was_body = true;
-                        break;
-                    }
-                }
-                if(it_was_body == false){
+                unsigned short place[2] = {pos[i][0] , pos[i][1] + 1};
+                if (is_body(place) == false){
                     return;
                 }
             }
@@ -132,16 +121,10 @@ void moving(uint direction){ //change it to move_left/ rigt itd not switch case 
                 break;
             }
             if (tab[pos[i][0] + 1][pos[i][1]] == H){
-                bool it_was_body = false;
-                for(int j = 0; j < 4; j++){
-                    if((pos[i][0] + 1) == pos[j][0] && pos[i][1] == pos[j][1]){
-                        it_was_body = true;
-                    }
-                }
-                if (it_was_body == false){
+                unsigned short place[2] = {pos[i][0] + 1, pos[i][1]};
+                if (is_body(place)== false){
                     floor = true;
-                    break;
-                }
+                };
             }
             
         }
@@ -176,7 +159,7 @@ void random_block(){
                                    {{0, 1}, {1, 1}, {2, 0}, {2, 1}},//J
                                    {{0, 2}, {0, 1}, {1, 0}, {1, 1}},//S
                                    {{0, 0}, {0, 1}, {1, 1}, {1, 2}},//Z
-                                   {{0, 1}, {1, 0}, {1, 1}, {1, 2}},//T
+                                   {{0, 1}, {1, 1}, {1, 0}, {1, 2}},//T
                                   };
 
     int block = get_rand_32() % 7;
@@ -189,12 +172,30 @@ void random_block(){
     
 }
 
+int is_body(unsigned short place[2]){
+    for(int i = 0; i < 4; i++){
+        if(place[0] == pos[i][0] && place[1] == pos[i][1]){
+            return true;
+        }
+    }
+    return false;
+}
+
 void rotating(){
+    short temp_pos[4][2] = {0};
+    for(int i = 0; i < 4; i++){
+        temp_pos[i][0] = pos[i][1] - pos[1][1] + pos[1][0]; // doing matrix rotation 
+        temp_pos[i][1] = -1 * (pos[i][0] - pos[1][0]) + pos[1][1]; 
+        if(tab[temp_pos[i][0]][temp_pos[i][1]] == H){
+            if(is_body(temp_pos[i]) == false){
+                    return;
+                }
+        }
+    }
     clear_block();
     for(int i = 0; i < 4; i++){
-        unsigned short temp_pos[2] = {pos[i][0] - pos[1][0], pos[i][1] - pos[1][1]}; //making point relevant to center of block
-        pos[i][0] = temp_pos[1] + pos[1][0];
-        pos[i][1] = -1 * temp_pos[0] + pos[1][1];
+        pos[i][0] = temp_pos[i][0];
+        pos[i][1] = temp_pos[i][1];
         tab[pos[i][0]][pos[i][1]] = H;
     }
 }
