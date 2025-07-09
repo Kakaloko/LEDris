@@ -10,7 +10,6 @@
 #define ROWS 18
 #define COLUMNS 10
 
-
 void moving(uint direction);
 void random_block();
 void clear_block();
@@ -20,9 +19,11 @@ void check_delete_rows();
 void all_block_fall();
 int is_body(unsigned short place[2]);
 void new_game();
+bool speed_up_falling();
 absolute_time_t last_button_time;
 volatile bool tab[ROWS][COLUMNS] = {0};
 unsigned short pos[4][2] = {{0, 0},{0, 1},{1, 0},{1, 1}}; 
+uint32_t fall_time = 500;
 
 int main()
 {
@@ -34,7 +35,11 @@ int main()
 
 
     while(true){
-        sleep_ms(500);
+        if(speed_up_falling()){
+            sleep_ms(100);
+        }else{
+            sleep_ms(fall_time);
+        }
         moving(3);
     }
    
@@ -214,6 +219,7 @@ void check_delete_rows(){
             }
         }
         if(row){
+            fall_time = fall_time * 0.95;
             all_block_fall(i);
             i += 1;
         }
@@ -245,9 +251,17 @@ void new_game(){
             tab[i][j] = L;
         }
     }
+    fall_time = 500;
     clear_block();
     random_block();
     for(int i = 0; i < 4; i++){
             tab[pos[i][0]][pos[i][1]] = H;
     }
+}
+
+bool speed_up_falling(){
+    if(gpio_get(LEFT) == 0 && gpio_get(RIGHT) == 0){
+        return true;
+    }else
+    return false;
 }
