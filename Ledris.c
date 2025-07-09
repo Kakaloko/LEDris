@@ -19,6 +19,7 @@ void rotating();
 void check_delete_rows();
 void all_block_fall();
 int is_body(unsigned short place[2]);
+void new_game();
 absolute_time_t last_button_time;
 volatile bool tab[ROWS][COLUMNS] = {0};
 unsigned short pos[4][2] = {{0, 0},{0, 1},{1, 0},{1, 1}}; 
@@ -27,17 +28,10 @@ int main()
 {
     init_ledris();
 
-     for(int i = 0; i < ROWS; i++){ //setting up all the leds low
-        for(int j = 0; j < COLUMNS; j++){
-            tab[i][j] = L;
-        }
-    }
+    new_game();
     
     multicore_launch_core1(core1_entry);
 
-    for(int i = 0; i < 4; i++){
-        tab[pos[i][0]][pos[i][1]] = H;
-    }
 
     while(true){
         sleep_ms(500);
@@ -159,13 +153,13 @@ void clear_block(){
 }
 
 void random_block(){
-    unsigned short all_blocks[7][4][2] = {{{0, 0}, {0, 1}, {1, 0}, {1, 1}},//block
-                                   {{1, 0}, {1, 1}, {1, 2}, {1, 3}},//long
-                                   {{0, 0}, {1, 0}, {2, 0}, {2, 1}},//L
-                                   {{0, 1}, {1, 1}, {2, 0}, {2, 1}},//J
-                                   {{0, 2}, {0, 1}, {1, 0}, {1, 1}},//S
-                                   {{0, 0}, {0, 1}, {1, 1}, {1, 2}},//Z
-                                   {{0, 1}, {1, 1}, {1, 0}, {1, 2}},//T
+    unsigned short all_blocks[7][4][2] = {{{0, 4}, {0, 5}, {1, 4}, {1, 5}},//block
+                                   {{1, 3}, {1, 4}, {1, 5}, {1, 6}},//long
+                                   {{0, 4}, {1, 4}, {2, 4}, {2, 5}},//L
+                                   {{0, 5}, {1, 5}, {2, 5}, {2, 4}},//J
+                                   {{0, 6}, {0, 5}, {1, 5}, {1, 4}},//S
+                                   {{0, 3}, {0, 4}, {1, 4}, {1, 5}},//Z
+                                   {{0, 5}, {1, 5}, {1, 4}, {1, 6}},//T
                                   };
 
     int block = get_rand_32() % 7;
@@ -191,7 +185,10 @@ void rotating(){
     short temp_pos[4][2] = {0};
     for(int i = 0; i < 4; i++){
         temp_pos[i][0] = pos[i][1] - pos[1][1] + pos[1][0]; // doing matrix rotation 
-        temp_pos[i][1] = -1 * (pos[i][0] - pos[1][0]) + pos[1][1]; 
+        temp_pos[i][1] = -1 * (pos[i][0] - pos[1][0]) + pos[1][1];
+        if(temp_pos[i][1] < 0 || temp_pos[i][1] > 9 || temp_pos[i][0] > 17){
+            return;
+        } 
         if(tab[temp_pos[i][0]][temp_pos[i][1]] == H){
             if(is_body(temp_pos[i]) == false){
                     return;
@@ -208,7 +205,7 @@ void rotating(){
 
 void check_delete_rows(){
 
-    for(int i = ROWS - 1; i > 0; i -= 1){ //iterating though whole  table
+    for(int i = ROWS - 1; i > 1; i -= 1){ //iterating through whole  table
         bool row = true;
         for(int j = 0; j < COLUMNS; j++){
             if(tab[i][j] != H){
@@ -218,6 +215,14 @@ void check_delete_rows(){
         }
         if(row){
             all_block_fall(i);
+            i += 1;
+        }
+    }
+
+    for(int j = 0; j < COLUMNS; j++){
+        if(tab[2][j] == H){
+            new_game();
+            return;
         }
     }
 }
@@ -232,4 +237,17 @@ void all_block_fall(int row){
         }
     }
     
+}
+
+void new_game(){
+    for(int i = 0; i < ROWS; i++){ //setting up all the leds low
+        for(int j = 0; j < COLUMNS; j++){
+            tab[i][j] = L;
+        }
+    }
+    clear_block();
+    random_block();
+    for(int i = 0; i < 4; i++){
+            tab[pos[i][0]][pos[i][1]] = H;
+    }
 }
