@@ -7,23 +7,28 @@
 
 #define H 0
 #define L 1
+#define ROWS 18
+#define COLUMNS 10
+
 
 void moving(uint direction);
 void random_block();
 void clear_block();
 void core1_entry();
 void rotating();
+void check_delete_rows();
+void all_block_fall();
 int is_body(unsigned short place[2]);
 absolute_time_t last_button_time;
-volatile bool tab[18][10] = {0};
+volatile bool tab[ROWS][COLUMNS] = {0};
 unsigned short pos[4][2] = {{0, 0},{0, 1},{1, 0},{1, 1}}; 
 
 int main()
 {
     init_ledris();
 
-     for(int i = 0; i < 18; i++){ //setting up all the leds low
-        for(int j = 0; j < 10; j++){
+     for(int i = 0; i < ROWS; i++){ //setting up all the leds low
+        for(int j = 0; j < COLUMNS; j++){
             tab[i][j] = L;
         }
     }
@@ -129,6 +134,7 @@ void moving(uint direction){ //change it to move_left/ rigt itd not switch case 
             
         }
         if(floor == true){
+            check_delete_rows();
             random_block();
             for(int i = 0; i < 4; i++){
                 tab[pos[i][0]][pos[i][1]] = H;
@@ -198,4 +204,32 @@ void rotating(){
         pos[i][1] = temp_pos[i][1];
         tab[pos[i][0]][pos[i][1]] = H;
     }
+}
+
+void check_delete_rows(){
+
+    for(int i = ROWS - 1; i > 0; i -= 1){ //iterating though whole  table
+        bool row = true;
+        for(int j = 0; j < COLUMNS; j++){
+            if(tab[i][j] != H){
+                row = false;
+                break;
+            }
+        }
+        if(row){
+            all_block_fall(i);
+        }
+    }
+}
+
+void all_block_fall(int row){
+    for(int i = 0; i < COLUMNS; i++){
+            tab[row][i] = L;
+    }
+    for(int i = row; i > 1; i -= 1){
+        for(int j = 0; j < COLUMNS; j++){
+            tab[i][j] = tab[i-1][j];
+        }
+    }
+    
 }
