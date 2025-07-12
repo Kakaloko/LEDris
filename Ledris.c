@@ -9,8 +9,11 @@
 #define L 1
 #define ROWS 18
 #define COLUMNS 10
+#define FALL_TIME_MS 500
 
-void moving(uint direction);
+void move_right();
+void move_left();
+void move_down();
 void random_block();
 void clear_block();
 void core1_entry();
@@ -23,7 +26,7 @@ bool speed_up_falling();
 absolute_time_t last_button_time;
 volatile bool tab[ROWS][COLUMNS] = {0};
 unsigned short pos[4][2] = {{0, 0},{0, 1},{1, 0},{1, 1}}; 
-uint32_t fall_time = 500;
+uint32_t fall_time = FALL_TIME_MS;
 
 int main()
 {
@@ -33,14 +36,13 @@ int main()
     
     multicore_launch_core1(core1_entry);
 
-
     while(true){
         if(speed_up_falling()){
             sleep_ms(100);
         }else{
             sleep_ms(fall_time);
         }
-        moving(3);
+        move_down();
     }
    
 }
@@ -61,10 +63,10 @@ void button_handler(uint gpio, uint32_t event_mask){
     switch (gpio)
     {
     case LEFT:
-        moving(LEFT);
+        move_left();
         break;
     case RIGHT:
-        moving(RIGHT);
+        move_right();
         break;
     case ROTATE:
         rotating();
@@ -74,82 +76,74 @@ void button_handler(uint gpio, uint32_t event_mask){
     
 }
 
-void moving(uint direction){ //change it to move_left/ rigt itd not switch case less readable
-    switch (direction)
-    {
-    case LEFT:
-        for(int i = 0; i < 4; i++){ // checking if not to far left
-            if (pos[i][1] == 0){
-                return;
-            }
-            if(tab[pos[i][0]][pos[i][1] - 1] == H){
-                unsigned short place[2] = {pos[i][0] , pos[i][1] - 1};
-                if (is_body(place) == false){
-                    return;
-                }
-            }
-        }
-    
-        clear_block();
-            
-        for(int i = 0; i < 4; i++){
-            pos[i][1] = pos[i][1] - 1;
-            tab[pos[i][0]][pos[i][1]] = H;
-            }
-        break;
-    
-    case RIGHT:
-        for(int i = 0; i < 4; i++){ // checking if not to far right
-            if (pos[i][1] == 9){
-                return;
-            }
-            if(tab[pos[i][0]][pos[i][1] + 1] == H){
-                unsigned short place[2] = {pos[i][0] , pos[i][1] + 1};
-                if (is_body(place) == false){
-                    return;
-                }
-            }
-        }
-        clear_block();
-        for(int i = 0; i < 4; i++){ // if not on right wall moving everything right
-            pos[i][1] += 1;
-            tab[pos[i][0]][pos[i][1]] = H;
-            } 
-            
-        break;
-    case 3:
-        bool floor = false;
-        for(int i = 0; i < 4; i++){// checking if not floor
-            if (pos[i][0] == 17){
-                floor = true;
-                break;
-            }
-            if (tab[pos[i][0] + 1][pos[i][1]] == H){
-                unsigned short place[2] = {pos[i][0] + 1, pos[i][1]};
-                if (is_body(place)== false){
-                    floor = true;
-                };
-            }
-            
-        }
-        if(floor == true){
-            check_delete_rows();
-            random_block();
-            for(int i = 0; i < 4; i++){
-                tab[pos[i][0]][pos[i][1]] = H;
-            }
+void move_left(){
+    for(int i = 0; i < 4; i++){ // checking if not to far left
+        if (pos[i][1] == 0){
             return;
         }
-        clear_block();
-        for(int i = 0; i < 4; i++){
-            pos[i][0] += 1;
-            tab[pos[i][0]][pos[i][1]] = H;
+        if(tab[pos[i][0]][pos[i][1] - 1] == H){
+            unsigned short place[2] = {pos[i][0] , pos[i][1] - 1};
+            if (is_body(place) == false){
+                return;
             }
-        break;
-    default:
-        break;
+        }
     }
+    clear_block();
+    for(int i = 0; i < 4; i++){
+        pos[i][1] = pos[i][1] - 1;
+        tab[pos[i][0]][pos[i][1]] = H;
     }
+}
+
+void move_right(){
+    for(int i = 0; i < 4; i++){ // checking if not to far right
+        if (pos[i][1] == 9){
+            return;
+        }
+        if(tab[pos[i][0]][pos[i][1] + 1] == H){
+            unsigned short place[2] = {pos[i][0] , pos[i][1] + 1};
+            if (is_body(place) == false){
+                return;
+            }
+        }
+    }
+    clear_block();
+    for(int i = 0; i < 4; i++){ // if not on right wall moving everything right
+        pos[i][1] += 1;
+        tab[pos[i][0]][pos[i][1]] = H;
+    } 
+            
+}
+
+void move_down(){
+    bool floor = false;
+    for(int i = 0; i < 4; i++){// checking if not floor
+        if (pos[i][0] == 17){
+            floor = true;
+            break;
+        }
+        if (tab[pos[i][0] + 1][pos[i][1]] == H){
+            unsigned short place[2] = {pos[i][0] + 1, pos[i][1]};
+            if (is_body(place)== false){
+                floor = true;         
+            };
+        }
+            
+    }
+    if(floor){
+        check_delete_rows();
+        random_block();
+        for(int i = 0; i < 4; i++){
+            tab[pos[i][0]][pos[i][1]] = H;
+        }
+        return;
+    }
+    clear_block();
+    for(int i = 0; i < 4; i++){
+        pos[i][0] += 1;
+        tab[pos[i][0]][pos[i][1]] = H;
+    }
+}
 
 void clear_block(){
      for(int i = 0; i < 4; i++){ 
@@ -168,7 +162,6 @@ void random_block(){
                                   };
 
     int block = get_rand_32() % 7;
-    printf("%d", block);
     for(int i = 0; i < 4; i++){
         for(int j = 0; j < 2; j++){
             pos[i][j] = all_blocks[block][i][j];
@@ -251,7 +244,7 @@ void new_game(){
             tab[i][j] = L;
         }
     }
-    fall_time = 500;
+    fall_time = FALL_TIME_MS;
     clear_block();
     random_block();
     for(int i = 0; i < 4; i++){
