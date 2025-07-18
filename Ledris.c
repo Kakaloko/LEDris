@@ -11,38 +11,38 @@
 #define COLUMNS 10
 #define FALL_TIME_MS 500
 
+void core1_entry();
 void move_right();
 void move_left();
-void move_down();
+void move_down(uint32_t* fall_time_adr);
 void random_block();
 void clear_block();
-void core1_entry();
 void rotating();
-void check_delete_rows();
+void check_delete_rows(uint32_t* fall_time_adr);
 void all_block_fall();
-int is_body(unsigned short place[2]);
-void new_game();
+bool is_body(unsigned short place[2]);
+void new_game(uint32_t* fall_time_adr);
 bool speed_up_falling();
 absolute_time_t last_button_time;
-volatile bool tab[ROWS][COLUMNS] = {0};
 unsigned short pos[4][2] = {{0, 0},{0, 1},{1, 0},{1, 1}}; 
-uint32_t fall_time = FALL_TIME_MS;
+volatile bool tab[ROWS][COLUMNS] = {0};
 
 int main()
 {
     init_ledris();
-
-    new_game();
     
+    uint32_t fall_time = FALL_TIME_MS;
+    new_game(&fall_time);
+   
     multicore_launch_core1(core1_entry);
-
+    
     while(true){
         if(speed_up_falling()){
-            sleep_ms(100);
+            sleep_ms(fall_time*0.5);
         }else{
             sleep_ms(fall_time);
         }
-        move_down();
+        move_down(&fall_time);
     }
    
 }
@@ -83,7 +83,7 @@ void move_left(){
         }
         if(tab[pos[i][0]][pos[i][1] - 1] == H){
             unsigned short place[2] = {pos[i][0] , pos[i][1] - 1};
-            if (is_body(place) == false){
+            if (!is_body(place)){
                 return;
             }
         }
@@ -102,7 +102,7 @@ void move_right(){
         }
         if(tab[pos[i][0]][pos[i][1] + 1] == H){
             unsigned short place[2] = {pos[i][0] , pos[i][1] + 1};
-            if (is_body(place) == false){
+            if (!is_body(place)){
                 return;
             }
         }
@@ -115,7 +115,7 @@ void move_right(){
             
 }
 
-void move_down(){
+void move_down(uint32_t* fall_time_adr){
     bool floor = false;
     for(int i = 0; i < 4; i++){// checking if not floor
         if (pos[i][0] == 17){
@@ -124,14 +124,14 @@ void move_down(){
         }
         if (tab[pos[i][0] + 1][pos[i][1]] == H){
             unsigned short place[2] = {pos[i][0] + 1, pos[i][1]};
-            if (is_body(place)== false){
+            if (!is_body(place)){
                 floor = true;         
             };
         }
             
     }
     if(floor){
-        check_delete_rows();
+        check_delete_rows(fall_time_adr);
         random_block();
         for(int i = 0; i < 4; i++){
             tab[pos[i][0]][pos[i][1]] = H;
@@ -170,7 +170,7 @@ void random_block(){
     
 }
 
-int is_body(unsigned short place[2]){
+bool is_body(unsigned short place[2]){
     for(int i = 0; i < 4; i++){
         if(place[0] == pos[i][0] && place[1] == pos[i][1]){
             return true;
@@ -188,7 +188,7 @@ void rotating(){
             return;
         } 
         if(tab[temp_pos[i][0]][temp_pos[i][1]] == H){
-            if(is_body(temp_pos[i]) == false){
+            if(!is_body(temp_pos[i])){
                     return;
                 }
         }
@@ -201,7 +201,7 @@ void rotating(){
     }
 }
 
-void check_delete_rows(){
+void check_delete_rows(uint32_t* fall_time_adr){
 
     for(int i = ROWS - 1; i > 1; i -= 1){ //iterating through whole  table
         bool row = true;
@@ -212,7 +212,7 @@ void check_delete_rows(){
             }
         }
         if(row){
-            fall_time = fall_time * 0.95;
+            *fall_time_adr = *fall_time_adr * 0.95;
             all_block_fall(i);
             i += 1;
         }
@@ -220,7 +220,7 @@ void check_delete_rows(){
 
     for(int j = 0; j < COLUMNS; j++){
         if(tab[2][j] == H){
-            new_game();
+            new_game(fall_time_adr);
             return;
         }
     }
@@ -238,13 +238,13 @@ void all_block_fall(int row){
     
 }
 
-void new_game(){
+void new_game(uint32_t* fall_time_adr){
     for(int i = 0; i < ROWS; i++){ //setting up all the leds low
         for(int j = 0; j < COLUMNS; j++){
             tab[i][j] = L;
         }
     }
-    fall_time = FALL_TIME_MS;
+    *fall_time_adr = FALL_TIME_MS;
     clear_block();
     random_block();
     for(int i = 0; i < 4; i++){
